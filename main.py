@@ -4,12 +4,12 @@ import argparse
 
 def main(args):
 	'''
-    model = models.load_model(args.model)
-    dataset = datasets.load_dataset(args.dataset)
-    dataloader = ...
-    optimizer = nn.optim.SGD(model.parameters(), lr=1e-3)
-    for batch in dataloader:
-        train()
+	model = models.load_model(args.model)
+	dataset = datasets.load_dataset(args.dataset)
+	dataloader = ...
+	optimizer = nn.optim.SGD(model.parameters(), lr=1e-3)
+	for batch in dataloader:
+		train()
 	'''
 	print("Hello World")
 
