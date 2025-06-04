@@ -45,7 +45,7 @@ def main(args):
     
     # DataLoader 생성: (여기서는 PyTorch의 DataLoader를 사용)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    test_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2)
     
     # 옵티마이저 정의 (예: SGD)
     optimizer = optim.SGD(model.parameters(), lr=1e-3)
