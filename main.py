@@ -71,11 +71,11 @@ def main(args):
             
             running_loss += loss.item()
             if (batch_idx + 1) % 10 == 0:
-                print(f"Epoch [{epoch+1}/{args.num_epochs}], Step [{batch_idx+1}/{len(train_dataloader)}], Loss: {running_loss / 10:.2f}")
+                print(f"Epoch [{epoch+1}/{args.num_epochs}], Step [{batch_idx+1}/{len(train_dataloader)}], Loss: {running_loss / 10:.4f}")
                 running_loss = 0.0
         
         val_loss, val_acc = test(model, test_dataloader, criterion, device)
-        print(f"Epoch [{epoch+1}/{args.num_epochs}], Loss: {val_loss:.4f}, Accuracy: {val_acc:.4f}%")
+        print(f"Epoch [{epoch+1}/{args.num_epochs}], Loss: {val_loss:.4f}, Accuracy: {val_acc:.2f}%")
 
     print("Training finished.")
 
