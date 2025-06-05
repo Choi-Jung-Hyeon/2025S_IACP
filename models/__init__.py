@@ -1,7 +1,7 @@
-from .resnet34 import ResNet34
-from .densenet import DenseNet
-from .fractalnet import FractalNet
-from .preactresnet import PreActResNet
+from .ResNet import ResNet34
+from .DenseNet import DenseNet
+from .FractalNet import FractalNet
+from .PreActResNet import PreActResNet
 
 
 def load_model(model_name, num_classes=10):
