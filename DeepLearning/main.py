@@ -20,29 +20,29 @@ def main(args):
     dataset = datasets.load_dataset(args.dataset, train=True)
     
     # DataLoader 생성: (여기서는 PyTorch의 DataLoader를 사용)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+    dataloader = DataLoader(dataset, batch_size=args.batch, shuffle=True, num_workers=2)
     
     # 옵티마이저 정의 (예: SGD)
     optimizer = optim.SGD(model.parameters(), lr=1e-3)
-    criterion = nn.CrossEntropyLoss()
     
     # 간단한 training loop (에포크 수만큼 반복)
+    criterion = nn.CrossEntropyLoss()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     
-    for epoch in range(args.num_epochs):
+    for epoch in range(args.epoch):
         model.train()
 
         running_loss = 0.0
         for batch_idx, (inputs, labels) in enumerate(dataloader):
             inputs, labels = inputs.to(device), labels.to(device)
-            
+
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            
+
             running_loss += loss.item()
             if (batch_idx + 1) % 10 == 0:
                 print(f"Epoch [{epoch+1}/{args.num_epochs}], Step [{batch_idx+1}/{len(dataloader)}], Loss: {running_loss / 10:.4f}")
