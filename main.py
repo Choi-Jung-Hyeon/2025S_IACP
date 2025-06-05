@@ -30,7 +30,7 @@ def main(args):
     criterion = nn.CrossEntropyLoss()
     
     # 간단한 training loop (에포크 수만큼 반복)
-    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device} device")
     model.to(device)
     
