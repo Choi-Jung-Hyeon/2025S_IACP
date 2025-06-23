@@ -1,10 +1,19 @@
 from torchvision import datasets, transforms
 
 def load_dataset(name, train=True):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
+    # train/test에 따라 다른 transform 적용
+    if train:
+        transform = transforms.Compose([
+            transforms.RandomResizedCrop(32, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+    else:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
 
     if name.lower() == "cifar10":
         return datasets.CIFAR10(root="./data", train=train, download=True, transform=transform)
