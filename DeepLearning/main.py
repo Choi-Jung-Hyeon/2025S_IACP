@@ -88,7 +88,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="resnet34", 
+    parser.add_argument("--model", type=str, default="resnet18", 
                        help="Model: resnet34, densenet, fractalnet, preactresnet")
     parser.add_argument("--dataset", type=str, default="cifar10", 
                        help="Dataset: cifar10 or cifar100")
