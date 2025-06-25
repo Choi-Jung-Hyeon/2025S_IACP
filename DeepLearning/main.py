@@ -10,16 +10,8 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 
 def main(args):
-    # num_classes 설정
-    if args.dataset.lower() == "cifar100":
-        num_classes = 100
-    elif args.dataset.lower() == "cifar10":
-        num_classes = 10
-    else:
-        num_classes = 10
-        
     # 모델 로드
-    model = models.load_model(args.model, num_classes=num_classes)
+    model = models.load_model(args.model, args.dataset)
     
     # 데이터셋 로드
     train_dataset = datasets.load_dataset(args.dataset, train=True)
