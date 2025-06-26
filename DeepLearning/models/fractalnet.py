@@ -50,7 +50,7 @@ class FractalNet(nn.Module):
         # Fractal blocks (여러 개 사용)
         self.blocks = nn.ModuleList()
         in_channels = 64
-        for _ in self.num_columns:
+        for _ in range(self.num_columns):
             self.blocks.append(FractalBlock(64, 64, depth, stride=1))
             self.blocks.append(self.pool)
             
