@@ -32,6 +32,19 @@ def main(args):
                          momentum=0.9, weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss()
     scheduler = StepLR(optimizer, step_size=args.lr_step, gamma=args.lr_gamma)
+    print("-----------------------------Hyper Parameter-----------------------------")
+    print("Model: ", args.model)
+    print("Dataset: ", args.dataset)
+    print("Num of Epochs: ", args.num_epochs)
+    print("Batch Size: ", args.batch_size)
+    print("Initial Learning Rate: ", args.lr)
+    print("Weight Decay: ", args.weight_decay)
+    print("LR Scheduler Step: ", args.lr_step)
+    print("LR Scheduler Gamma: ", args.lr_gamma)
+    print("Print Frequency: ", args.print_freq)
+    print("Evaluation Frequency: ", args.eval_freq)
+    print("-------------------------------------------------------------------------")
+    print("Training start.")
     
     # training loop
     for epoch in range(args.num_epochs):
