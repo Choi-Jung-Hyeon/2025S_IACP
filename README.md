@@ -1,10 +1,23 @@
 # 2025S_IACP
 산학협력프로젝트 유형2 이한국교수님 팀 리포지토리
 
+# 리포지토리 구조
+```
+main.py
+datasets.py
+models/
+ └__init__.py
+ └ResNet.py
+ └PreActResNet.py
+ └DenseNet.py
+ └FractalNet.py
+```
+
 # 실행방법
 ```
 python3 main.py (argument)
 ```
+
 ## Argument
 ```
 --model         (default: resnet18), resnet34, densenet, fractalnet, preactresnet
@@ -19,14 +32,11 @@ python3 main.py (argument)
 --eval_freq     (default: 1) Epoch별로 Validate Accuracy를 출력할 Frequency
 ```
 
-# 리포지토리 구조
+# 자주 쓰는 명령어
 ```
-main.py
-datasets.py
-models/
- └__init__.py
- └ResNet.py
- └PreActResNet.py
- └DenseNet.py
- └FractalNet.py
+Ctrl+b → %               tmux: 오른쪽에 새 창 생성
+Ctrl+b → "               tmux: 아래에 새 창 생성
+Ctrl+b → (방향키)        tmux: 방향키 방향의 창으로 이동
+Ctrl+d                   tmux: 현재 창 닫기
+watch -n 0.1 nvidia-smi  GPU 사용량을 0.1초마다 모니터링
 ```
