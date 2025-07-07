@@ -33,16 +33,16 @@ def main(args):
     criterion = nn.CrossEntropyLoss()
     scheduler = StepLR(optimizer, step_size=args.lr_step, gamma=args.lr_gamma)
     print("-----------------------------Hyper Parameter-----------------------------")
-    print("Model: ", args.model)
-    print("Dataset: ", args.dataset)
-    print("Num of Epochs: ", args.num_epochs)
-    print("Batch Size: ", args.batch_size)
-    print("Initial Learning Rate: ", args.lr)
-    print("Weight Decay: ", args.weight_decay)
-    print("LR Scheduler Step: ", args.lr_step)
-    print("LR Scheduler Gamma: ", args.lr_gamma)
-    print("Print Frequency: ", args.print_freq)
-    print("Evaluation Frequency: ", args.eval_freq)
+    print("Model:", args.model)
+    print("Dataset:", args.dataset)
+    print("Num of Epochs:", args.num_epochs)
+    print("Batch Size:", args.batch_size)
+    print("Initial Learning Rate:", args.lr)
+    print("Weight Decay:", args.weight_decay)
+    print("LR Scheduler Step:", args.lr_step)
+    print("LR Scheduler Gamma:", args.lr_gamma)
+    print("Print Frequency:", args.print_freq)
+    print("Evaluation Frequency:", args.eval_freq)
     print("-------------------------------------------------------------------------")
     print("Training start.")
     
@@ -71,8 +71,8 @@ def main(args):
             if (batch_idx + 1) % args.print_freq == 0:
                 print(f'Epoch: [{epoch+1}/{args.num_epochs}] '
                       f'Step: [{batch_idx+1}/{len(train_loader)}] '
-                      f'Loss: {train_loss/(batch_idx+1):.4f} '
-                      f'Acc: {100.*correct/total:.2f}%')
+                      f'Training Loss: {train_loss/(batch_idx+1):.4f} '
+                      f'Training Acc: {100.*correct/total:.2f}%')
         
         # eval_freq마다 평가
         if (epoch + 1) % args.eval_freq == 0:
