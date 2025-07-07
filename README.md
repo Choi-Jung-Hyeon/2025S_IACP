@@ -21,9 +21,9 @@ python3 main.py (argument)
 
 # 리포지토리 구조
 ```
- main.py
- datasets.py
- models/
+main.py
+datasets.py
+models/
  └__init__.py
  └ResNet.py
  └PreActResNet.py
