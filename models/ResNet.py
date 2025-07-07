@@ -2,23 +2,24 @@ import torch
 import torch.nn as nn
 
 class ResidualBlock(nn.Module) :
-
+    constant = 1
     def __init__(self, in_channels, out_channels, stride=1) :
+        
         super().__init__()
         self.relu = nn.ReLU()
 
         self.residual_block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(out_channels)
         )
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_channels != out_channels :
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, padding=0),
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, padding=0, bias=False),
                 nn.BatchNorm2d(out_channels)
             )
 
@@ -26,97 +27,77 @@ class ResidualBlock(nn.Module) :
         return self.relu(self.residual_block(x) + self.shortcut(x))
 
 class BottleneckBlock(nn.Module) :
-
+    constant = 4
     def __init__(self, in_channels, out_channels, stride=1) :
+        
         super().__init__()
         self.relu = nn.ReLU()
 
         self.bottleneck_block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
-            nn.Conv2d(out_channels, 4*out_channels, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(4*out_channels),
+            nn.Conv2d(out_channels, self.constant*out_channels, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(self.constant*out_channels),
         )
 
         self.shortcut = nn.Sequential()
-        if stride != 1 or in_channels != 4*out_channels :
+        if stride != 1 or in_channels != self.constant*out_channels :
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_channels, 4*out_channels, kernel_size=1, stride=stride, padding=0),
-                nn.BatchNorm2d(4*out_channels)
+                nn.Conv2d(in_channels, self.constant*out_channels, kernel_size=1, stride=stride, padding=0, bias=False),
+                nn.BatchNorm2d(self.constant*out_channels)
             )
 
     def forward(self, x) :
         return self.relu(self.bottleneck_block(x) + self.shortcut(x))
 
-class ResNet34(nn.Sequential) :
-    def __init__(self, num_classes=10) :
-        super().__init__(
-            #conv1
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            #conv2_X
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
-            #conv3_x
-            ResidualBlock(64, 128, stride=2), 
-            ResidualBlock(128, 128),
-            ResidualBlock(128, 128),
-            ResidualBlock(128, 128),
-            #conv4_x
-            ResidualBlock(128, 256, stride=2),
-            ResidualBlock(256, 256),
-            ResidualBlock(256, 256),
-            ResidualBlock(256, 256),
-            ResidualBlock(256, 256),
-            ResidualBlock(256, 256),
-            #conv5_x
-            ResidualBlock(256, 512, stride=2),
-            ResidualBlock(512, 512),
-            ResidualBlock(512, 512),
-            #result
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(512, num_classes)
+class ResNet(nn.Module):
+    def __init__(self, block, layers, num_classes=10):
+        super().__init__()
+        self.in_channels = 64
+
+        self.stem = nn.Sequential(
+            nn.Conv2d(3, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(self.in_channels),
+            nn.ReLU()
         )
 
-class ResNet50(nn.Sequential) :
-    def __init__(self, num_classes=10) :
-        super().__init__(
-            #conv1
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            #conv2_x
-            BottleneckBlock(64, 64),
-            BottleneckBlock(256, 64),
-            BottleneckBlock(256, 64),
-            #conv3_x
-            BottleneckBlock(256, 128, stride=2),
-            BottleneckBlock(512, 128),
-            BottleneckBlock(512, 128),
-            BottleneckBlock(512, 128),
-            #conv4_x
-            BottleneckBlock(512, 256, stride=2),
-            BottleneckBlock(1024, 256),
-            BottleneckBlock(1024, 256),
-            BottleneckBlock(1024, 256),
-            BottleneckBlock(1024, 256),
-            BottleneckBlock(1024, 256),
-            #conv5_x
-            BottleneckBlock(1024, 512, stride=2),
-            BottleneckBlock(2048, 512),
-            BottleneckBlock(2048, 512),
-            #result
+        self.conv2 = self._make_layer(block, 64, layers[0], stride=1)
+        self.conv3 = self._make_layer(block, 128, layers[1], stride=2)
+        self.conv4 = self._make_layer(block, 256, layers[2], stride=2)
+        self.conv5 = self._make_layer(block, 512, layers[3], stride=2)
+
+        self.classifier = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
-            nn.Linear(2048, num_classes)
+            nn.Linear(512 * block.constant, num_classes)
         )
 
-#model34 = ResNet34(num_classes=10)
-#model50 = ResNet50(num_classes=10)
+    def _make_layer(self, block, out_channels, num_blocks, stride):
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for s in strides:
+            layers.append(block(self.in_channels, out_channels, s))
+            self.in_channels = out_channels * block.constant
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.stem(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        x = self.classifier(x)
+        return x
+    
+def ResNet18(num_classes=10):
+    return ResNet(ResidualBlock, [2, 2, 2, 2], num_classes=num_classes)
+
+def ResNet34(num_classes=10):
+    return ResNet(ResidualBlock, [3, 4, 6, 3], num_classes=num_classes)
+
+def ResNet50(num_classes=10):
+    return ResNet(BottleneckBlock, [3, 4, 6, 3], num_classes=num_classes)
