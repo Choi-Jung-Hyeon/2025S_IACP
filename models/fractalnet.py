@@ -49,7 +49,7 @@ class FractalBlock(nn.Module):
             return (out_local + out_rec1 + out_rec2) / 3.0
 
 class FractalNet(nn.Module):
-    def __init__(self, num_classes=10, initial_channels=64, depth=3, columns=1):
+    def __init__(self, num_classes=10, initial_channels=64, depth=3, columns=3):
         super().__init__()
         
         self.conv1 = ConvBlock(3, initial_channels, kernel_size=3, stride=1, padding=1)
