@@ -60,7 +60,7 @@ class MSA(nn.Module):
         
         self.h = num_head
         self.d_model = d_model
-        self.d_k = d_model // num_head # 일반적으로 d_model을 헤드 수로 나눔
+        self.d_k = d_model // num_head
         
         self.q_linear = nn.Linear(d_model, d_model)
         self.k_linear = nn.Linear(d_model, d_model)
