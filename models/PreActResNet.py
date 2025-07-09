@@ -64,5 +64,5 @@ class PreActResNet(nn.Module):
         x = self.classifier(x)
         return x
 
-def preactresnet18(num_classes=10):
+def PreActResNet18(num_classes=10):
     return PreActResNet(PreActBlock, [2, 2, 2, 2], num_classes)
