@@ -93,11 +93,11 @@ class ResNet(nn.Module):
         x = self.classifier(x)
         return x
     
-def resnet18(num_classes=10):
+def ResNet18(num_classes=10):
     return ResNet(ResidualBlock, [2, 2, 2, 2], num_classes=num_classes)
 
-def resnet34(num_classes=10):
+def ResNet34(num_classes=10):
     return ResNet(ResidualBlock, [3, 4, 6, 3], num_classes=num_classes)
 
-def resnet50(num_classes=10):
+def ResNet50(num_classes=10):
     return ResNet(BottleneckBlock, [3, 4, 6, 3], num_classes=num_classes)
