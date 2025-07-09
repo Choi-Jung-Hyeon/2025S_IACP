@@ -31,7 +31,6 @@ class FractalBlock(nn.Module):
 
         # 학습 시: Local Drop-path 적용
         if self.training:
-            # 3개의 경로(local, branch1, branch2) 중 하나를 무작위로 선택
             path_choice = random.randint(0, 2)
             
             if path_choice == 0:
@@ -47,33 +46,42 @@ class FractalBlock(nn.Module):
             out_rec1 = self.branch1(x)
             out_rec2 = self.branch2(x)
             
-            # 모든 경로의 출력을 동일한 가중치로 평균
             return (out_local + out_rec1 + out_rec2) / 3.0
 
 class FractalNet(nn.Module):
-    def __init__(self, num_classes=10, num_columns=5, depth=4):
+    def __init__(self, num_classes=10, initial_channels=64, depth=3, columns=1):
         super().__init__()
-        self.num_columns = num_columns
-        self.depth = depth
         
-        self.conv1 = ConvBlock(3, 64, kernel_size=3, stride=1, padding=1)
+        self.conv1 = ConvBlock(3, initial_channels, kernel_size=3, stride=1, padding=1)
+        self.stage1 = self._make_stage(initial_channels, initial_channels, columns, depth)
+        self.pool1 = nn.MaxPool2d(2) 
+        self.stage2 = self._make_stage(initial_channels, initial_channels * 2, columns, depth)
+        self.pool2 = nn.MaxPool2d(2)
+        self.stage3 = self._make_stage(initial_channels * 2, initial_channels * 4, columns, depth)
+        self.pool_final = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(initial_channels * 4, num_classes)
         
-        # Fractal 블록들을 담을 ModuleList
-        self.blocks = nn.ModuleList()
-        for _ in range(self.num_columns):
-            self.blocks.append(FractalBlock(64, 64, depth, stride=1))
-        
-        # 풀링과 FC 레이어
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(64, num_classes)
-        
+    def _make_stage(self, in_channels, out_channels, columns, depth):
+        blocks = []
+        # 첫 번째 블록은 채널 수를 변경할 수 있음
+        blocks.append(FractalBlock(in_channels, out_channels, depth=depth))
+        # 나머지 블록은 채널 수를 유지
+        for _ in range(1, columns):
+            blocks.append(FractalBlock(out_channels, out_channels, depth=depth))
+        return nn.Sequential(*blocks)
+
     def forward(self, x):
         x = self.conv1(x)
         
-        for block in self.blocks:
-            x = block(x)
+        x = self.stage1(x)
+        x = self.pool1(x)
         
-        x = self.pool(x)
+        x = self.stage2(x)
+        x = self.pool2(x)
+        
+        x = self.stage3(x)      
+        x = self.pool_final(x)
+
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
