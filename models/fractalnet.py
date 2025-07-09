@@ -58,7 +58,7 @@ class FractalNet(nn.Module):
         self.stage2 = self._make_stage(initial_channels, initial_channels * 2, columns, depth)
         self.pool2 = nn.MaxPool2d(2)
         self.stage3 = self._make_stage(initial_channels * 2, initial_channels * 4, columns, depth)
-        self.pool_final = nn.AdaptiveAvgPool2d((1, 1))
+        self.pool3 = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(initial_channels * 4, num_classes)
         
     def _make_stage(self, in_channels, out_channels, columns, depth):
@@ -80,7 +80,7 @@ class FractalNet(nn.Module):
         x = self.pool2(x)
         
         x = self.stage3(x)      
-        x = self.pool_final(x)
+        x = self.pool3(x)
 
         x = torch.flatten(x, 1)
         x = self.fc(x)
