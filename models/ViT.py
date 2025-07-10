@@ -66,7 +66,7 @@ class MSA(nn.Module):
         self.k_linear = nn.Linear(d_model, d_model)
         self.v_linear = nn.Linear(d_model, d_model)
         
-        self.MHA_linear = nn.Linear(d_model, d_model)
+        self.MSA_linear = nn.Linear(d_model, d_model)
         self.dropout = nn.Dropout(dropout)
         
     def forward(self, x):
@@ -86,18 +86,18 @@ class MSA(nn.Module):
         # (B, H, N, D/H) -> (B, N, H, D/H) -> (B, N, D)
         out = out.transpose(1, 2).contiguous().view(b, n, d)
 
-        out = self.MHA_linear(out)
+        out = self.MSA_linear(out)
         return out
 
 class Encoder(nn.Module):
-    def __init__(self, d_model, num_head, d_ff, dropout=0.1):
+    def __init__(self, d_model, num_head, MLP_size, dropout=0.1):
         super().__init__()
         self.MSA = MSA(d_model, num_head, dropout)
         self.MLP = nn.Sequential(
-            nn.Linear(d_model, d_ff),
+            nn.Linear(d_model, MLP_size),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(d_ff, d_model),
+            nn.Linear(MLP_size, d_model),
             nn.Dropout(dropout)
         ) 
         self.LN = nn.LayerNorm(d_model)
@@ -110,7 +110,7 @@ class Encoder(nn.Module):
 
 class ViT(nn.Module):
     def __init__(self, num_classes, in_channels=3, height=32, width=32, patch_size=4, 
-                 d_model=192, num_layers=12, num_head=12, d_ff=384, dropout=0.1, hybrid=False):
+                 d_model=192, num_layers=12, num_head=12, MLP_size=384, dropout=0.1, hybrid=False):
         super().__init__()
         
         if hybrid:
@@ -119,7 +119,7 @@ class ViT(nn.Module):
             self.Embedding = Patch_Embedding(in_channels, height, width, patch_size, d_model)
         
         self.Encoder_layers = nn.ModuleList([
-            Encoder(d_model, num_head, d_ff, dropout) for _ in range(num_layers)
+            Encoder(d_model, num_head, MLP_size, dropout) for _ in range(num_layers)
         ])
         
         self.MLP_head = nn.Sequential(
