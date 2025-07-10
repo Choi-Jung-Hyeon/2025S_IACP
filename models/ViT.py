@@ -55,7 +55,7 @@ class Hybrid_Embedding(nn.Module):
         return out
 
 class MSA(nn.Module):
-    def __init__(self, d_model, num_head, dropout=0.1):
+    def __init__(self, d_model, num_head):
         super().__init__()
         
         self.h = num_head
@@ -67,7 +67,6 @@ class MSA(nn.Module):
         self.v_linear = nn.Linear(d_model, d_model)
         
         self.MSA_linear = nn.Linear(d_model, d_model)
-        self.dropout = nn.Dropout(dropout)
         
     def forward(self, x):
         b, n, d = x.shape
@@ -79,7 +78,6 @@ class MSA(nn.Module):
 
         attn_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
         attn_softmax = torch.softmax(attn_scores, dim=-1)
-        attn_softmax = self.dropout(attn_softmax)
         
         out = torch.matmul(attn_softmax, v) # (B, H, N, D/H)
         
@@ -90,15 +88,13 @@ class MSA(nn.Module):
         return out
 
 class Encoder(nn.Module):
-    def __init__(self, d_model, num_head, MLP_size, dropout=0.1):
+    def __init__(self, d_model, num_head, MLP_size):
         super().__init__()
-        self.MSA = MSA(d_model, num_head, dropout)
+        self.MSA = MSA(d_model, num_head)
         self.MLP = nn.Sequential(
             nn.Linear(d_model, MLP_size),
             nn.GELU(),
-            nn.Dropout(dropout),
             nn.Linear(MLP_size, d_model),
-            nn.Dropout(dropout)
         ) 
         self.LN = nn.LayerNorm(d_model)
         
@@ -110,7 +106,7 @@ class Encoder(nn.Module):
 
 class ViT(nn.Module):
     def __init__(self, num_classes, in_channels=3, height=32, width=32, patch_size=4, 
-                 d_model=192, num_layers=12, num_head=12, MLP_size=384, dropout=0.1, hybrid=False):
+                 d_model=192, num_layers=12, num_head=12, MLP_size=384, hybrid=False):
         super().__init__()
         
         if hybrid:
@@ -119,7 +115,7 @@ class ViT(nn.Module):
             self.Embedding = Patch_Embedding(in_channels, height, width, patch_size, d_model)
         
         self.Encoder_layers = nn.ModuleList([
-            Encoder(d_model, num_head, MLP_size, dropout) for _ in range(num_layers)
+            Encoder(d_model, num_head, MLP_size) for _ in range(num_layers)
         ])
         
         self.MLP_head = nn.Sequential(
