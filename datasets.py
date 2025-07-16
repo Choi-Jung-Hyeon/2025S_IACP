@@ -1,22 +1,54 @@
-from torchvision import datasets, transforms
+import torch
+import torchvision
+import torchvision.transforms as transforms
 
-def load_dataset(name, train=True):
-    # train/test에 따라 다른 transform 적용
-    if train:
-        transform = transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
+def get_transforms(dataset_name, train=True, ssl_mode=False):
+    """Get appropriate transforms for dataset"""
+    if dataset_name.lower() in ["cifar10", "cifar100"]:
+        if ssl_mode:
+            # SSL transforms (no rotation as it's handled in framework)
+            if train:
+                transform = transforms.Compose([
+                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                ])
+        else:
+            # Standard supervised transforms
+            if train:
+                transform = transforms.Compose([
+                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                ])
     else:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
+        raise ValueError(f"Unsupported dataset: {dataset_name}")
+        
+    return transform
 
-    if name.lower() == "cifar10":
-        return datasets.CIFAR10(root="./data", train=train, download=True, transform=transform)
-    elif name.lower() == "cifar100":
-        return datasets.CIFAR100(root="./data", train=train, download=True, transform=transform)
+def load_dataset(dataset_name, train=True, ssl_mode=False):
+    """Load dataset with appropriate transforms"""
+    transform = get_transforms(dataset_name, train, ssl_mode)
+    
+    if dataset_name.lower() == "cifar10":
+        return torchvision.datasets.CIFAR10(
+            root='./archive', train=train, download=True, transform=transform
+        )
+    elif dataset_name.lower() == "cifar100":
+        return torchvision.datasets.CIFAR100(
+            root='./archive', train=train, download=True, transform=transform
+        )
     else:
-        raise ValueError(f"Dataset '{name}' is not supported.")
+        raise ValueError(f"Unsupported dataset: {dataset_name}")
