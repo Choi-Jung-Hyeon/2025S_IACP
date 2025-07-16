@@ -3,7 +3,7 @@ from .DenseNet import DenseNet
 from .FractalNet import FractalNet
 from .PreActResNet import PreActResNet18
 from .ViT import ViT
-from .rotnet import rotnet
+from ..frameworks.rotnet import rotnet
 
 
 def load_model(model_name, data_name):
