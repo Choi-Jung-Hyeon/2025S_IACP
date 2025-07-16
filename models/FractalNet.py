@@ -3,7 +3,7 @@ import torch.nn as nn
 import random
 
 def join(inputs):
-    """Join multiple tensors by element-wise mean (논문 기준)"""
+    """Join multiple tensors by element-wise mean"""
     return torch.stack(inputs).mean(dim=0)
 
 class ConvBlock(nn.Module):
@@ -17,7 +17,7 @@ class ConvBlock(nn.Module):
         return self.relu(self.bn(self.conv(x)))
 
 class FractalBlock(nn.Module):
-    """Fractal block returning depth-length tensor list (7월 10일 Comment(2))"""
+    """Fractal block returning depth-length tensor list"""
     def __init__(self, in_channels, out_channels, depth, stride=1, drop_path=0.15):
         super().__init__()
         self.depth = depth
@@ -68,7 +68,7 @@ class FractalBlock(nn.Module):
             return [outputs[idx]]
 
 class FractalNet(nn.Module):
-    """FractalNet (논문 기준)"""
+    """FractalNet"""
     def __init__(self, num_classes=10, columns=4, blocks=5, drop_path=0.15):
         super().__init__()
         self.columns = columns
