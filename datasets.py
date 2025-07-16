@@ -11,13 +11,13 @@ def get_transforms(dataset_name, train=True, ssl_mode=False):
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize((0.4914, 0.4822, 0.4465), 
-                                   (0.2470, 0.2435, 0.2616))
+                                   (0.2470, 0.2435, 0.2616))  
             ])
         else:
             transform = transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize((0.4914, 0.4822, 0.4465), 
-                                   (0.2023, 0.1994, 0.2010))
+                                   (0.2470, 0.2435, 0.2616))  
             ])
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
