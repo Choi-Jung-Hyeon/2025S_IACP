@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score
 from .supervised_learning import SupervisedLearning
 
 class RotNet(SupervisedLearning):
-    """RotNet framework (7월 10일 Comment(1) 완전 반영)"""
+    """RotNet framework"""
     def __init__(self, encoder):
         super().__init__(encoder)
         

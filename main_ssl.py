@@ -9,7 +9,7 @@ import datasets
 import frameworks
 
 def ssl_training(framework, train_loader, device, args):
-    """SSL training loop (논문 기반)"""
+    """SSL training loop"""
     # RotNet paper: SGD, momentum=0.9, weight_decay=5e-4, lr=0.1
     optimizer = optim.SGD(framework.parameters(), lr=args.lr, 
                          momentum=0.9, weight_decay=args.weight_decay)
@@ -24,7 +24,7 @@ def ssl_training(framework, train_loader, device, args):
         num_batches = 0
         
         for batch_idx, batch in enumerate(train_loader):
-            # Framework에서 batch device 이동 처리 (7월 10일 Comment(1))
+            # Framework에서 batch device 이동 처리
             batch = framework.move_batch_to_device(batch, device)
             
             optimizer.zero_grad()
@@ -49,7 +49,7 @@ def main(args):
     # Setup
     num_classes = datasets.get_num_classes(args.dataset)
         
-    # Load encoder model (7월 10일 Comment(1))
+    # Load encoder model
     if args.model == "rotnet":
         encoder = models.rotnet(num_classes=4, num_blocks=args.num_blocks)
     else:
@@ -96,7 +96,7 @@ def main(args):
     # SSL Training
     ssl_training(framework, train_loader, device, args)
     
-    # k-NN Evaluation (7월 10일 Comment(1))
+    # k-NN Evaluation
     print("\n" + "="*60)
     print("k-NN EVALUATION")
     print("="*60)
@@ -105,7 +105,7 @@ def main(args):
     train_features, train_labels = framework.collect_features(train_labeled_loader, device)
     
     if train_features is None:
-        print("❌ No labeled training data available for k-NN evaluation")
+        print("No labeled training data available for k-NN evaluation")
         return
     
     print("Collecting test features...")
@@ -115,7 +115,7 @@ def main(args):
     accuracy = framework.knn_evaluation(train_features, train_labels, 
                                        test_features, test_labels, k=5)
     
-    print(f"\n✅ Final k-NN (k=5) Best Accuracy: {accuracy*100:.2f}%")
+    print(f"\nFinal k-NN (k=5) Best Accuracy: {accuracy*100:.2f}%")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Self-Supervised Learning')
