@@ -10,12 +10,12 @@ import frameworks
 
 def ssl_training(framework, train_loader, device, args):
     """SSL training loop (논문 기반)"""
-    # 논문 하이퍼파라미터: SGD, momentum=0.9, weight_decay=5e-4, lr=0.1
+    # RotNet paper: SGD, momentum=0.9, weight_decay=5e-4, lr=0.1
     optimizer = optim.SGD(framework.parameters(), lr=args.lr, 
                          momentum=0.9, weight_decay=args.weight_decay)
     
-    # 논문: Drop lr by factor of 5 after epochs 30, 60, 80
-    scheduler = MultiStepLR(optimizer, milestones=[30, 60, 80], gamma=0.2)  # 1/5 = 0.2
+    # RotNet paper: Drop lr by factor of 5 after epochs 30, 60, 80
+    scheduler = MultiStepLR(optimizer, milestones=[30, 60, 80], gamma=0.2)
     
     framework.train()
     
@@ -24,10 +24,11 @@ def ssl_training(framework, train_loader, device, args):
         num_batches = 0
         
         for batch_idx, batch in enumerate(train_loader):
+            # Framework에서 batch device 이동 처리 (7월 10일 Comment(1))
             batch = framework.move_batch_to_device(batch, device)
             
             optimizer.zero_grad()
-            loss = framework(batch)  # Framework handles 4x rotation batch
+            loss = framework(batch)  # Framework가 알아서 처리
             loss.backward()
             optimizer.step()
             
@@ -46,12 +47,9 @@ def ssl_training(framework, train_loader, device, args):
 
 def main(args):
     # Setup
-    if args.dataset.lower() == "cifar100":
-        num_classes = 100
-    else:
-        num_classes = 10
+    num_classes = datasets.get_num_classes(args.dataset)
         
-    # Load encoder model (NIN 구조)
+    # Load encoder model (7월 10일 Comment(1))
     if args.model == "rotnet":
         encoder = models.rotnet(num_classes=4, num_blocks=args.num_blocks)
     else:
@@ -63,39 +61,52 @@ def main(args):
     else:
         raise ValueError(f"Framework {args.framework} not implemented")
     
-    # Load datasets  
+    # Load datasets
     train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_mode=True)
     test_dataset = datasets.load_dataset(args.dataset, train=False, ssl_mode=False)
     
-    # 논문: batch_size=128
+    # Separate labeled dataset for k-NN evaluation
+    train_labeled = datasets.load_dataset(args.dataset, train=True, ssl_mode=False)
+    
+    # DataLoaders
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
                             shuffle=True, num_workers=4, pin_memory=True)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                            shuffle=False, num_workers=4, pin_memory=True)
+    train_labeled_loader = DataLoader(train_labeled, batch_size=args.batch_size,
+                                    shuffle=False, num_workers=4, pin_memory=True)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     framework.to(device)
     
-    print("="*60)
-    print("RotNet Self-Supervised Learning (논문 기반)")
+    print("=" * 60)
+    print("SELF-SUPERVISED LEARNING (RotNet)")
+    print("=" * 60)
     print(f"Framework: {args.framework}")
     print(f"Encoder: {args.model}")
     print(f"Dataset: {args.dataset}")
     print(f"SSL Epochs: {args.ssl_epochs}")
-    print(f"Batch Size: {args.batch_size} (4x rotations = {args.batch_size*4} images/batch)")
+    print(f"Batch Size: {args.batch_size}")
     print(f"Learning Rate: {args.lr}")
     print(f"Weight Decay: {args.weight_decay}")
     if args.model == "rotnet":
         print(f"NIN Blocks: {args.num_blocks}")
-    print("="*60)
+    print("=" * 60)
     
     # SSL Training
     ssl_training(framework, train_loader, device, args)
     
-    # k-NN Evaluation
-    print("\nStarting k-NN evaluation...")
+    # k-NN Evaluation (7월 10일 Comment(1))
+    print("\n" + "="*60)
+    print("k-NN EVALUATION")
+    print("="*60)
+    
     print("Collecting training features...")
-    train_features, train_labels = framework.collect_features(train_loader, device)
+    train_features, train_labels = framework.collect_features(train_labeled_loader, device)
+    
+    if train_features is None:
+        print("❌ No labeled training data available for k-NN evaluation")
+        return
     
     print("Collecting test features...")
     test_features, test_labels = framework.collect_features(test_loader, device)
@@ -104,19 +115,20 @@ def main(args):
     accuracy = framework.knn_evaluation(train_features, train_labels, 
                                        test_features, test_labels, k=5)
     
-    print(f"\n✅ Final k-NN (k=5) Accuracy: {accuracy*100:.2f}%")
+    print(f"\n✅ Final k-NN (k=5) Best Accuracy: {accuracy*100:.2f}%")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Self-Supervised Learning')
     
     # Framework
     parser.add_argument("--framework", type=str, default="rotnet",
-                       choices=["rotnet"], help="Learning framework")
+                       choices=["rotnet"], help="SSL framework")
     parser.add_argument("--model", type=str, default="rotnet", 
-                       help="Encoder model (rotnet for NIN architecture)")
+                       help="Encoder: rotnet, resnet34, densenet, fractalnet, preactresnet")
     parser.add_argument("--dataset", type=str, default="cifar10",
                        help="Dataset: cifar10 or cifar100")
     
+    # Training
     parser.add_argument("--ssl_epochs", type=int, default=100,
                        help="SSL training epochs (논문: 100)")
     parser.add_argument("--batch_size", type=int, default=128,
@@ -129,7 +141,7 @@ if __name__ == "__main__":
     
     # RotNet specific
     parser.add_argument("--num_blocks", type=int, default=4,
-                       choices=[3, 4, 5], help="Number of NIN blocks (논문: 3,4,5)")
+                       choices=[3, 4, 5], help="NIN blocks (논문: 3,4,5)")
     
     args = parser.parse_args()
     main(args)

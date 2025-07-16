@@ -1,4 +1,4 @@
-from .ResNet import resnet34
+from .ResNet import resnet34, resnet18
 from .DenseNet import densenet
 from .PreActResNet import preactresnet
 from .FractalNet import fractalnet
@@ -10,6 +10,8 @@ def load_model(model_name, num_classes=10, **kwargs):
     
     if model_name == "resnet34":
         return resnet34(num_classes=num_classes)
+    elif model_name == "resnet18":
+        return resnet18(num_classes=num_classes)
     elif model_name == "densenet":
         return densenet(num_classes=num_classes, **kwargs)
     elif model_name == "preactresnet":

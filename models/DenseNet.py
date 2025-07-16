@@ -1,107 +1,102 @@
 import torch
 import torch.nn as nn
 
-# Bottleneck layer
-class Bottleneck(nn.Module):
-    def __init__(self, in_channels, growth_rate):
+class DenseLayer(nn.Module):
+    def __init__(self, in_channels, growth_rate, bn_size=4, drop_rate=0):
         super().__init__()
-        inter_channels = 4 * growth_rate
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(in_channels, inter_channels, kernel_size=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(inter_channels)
-        self.conv2 = nn.Conv2d(inter_channels, growth_rate, kernel_size=3, 
-                              padding=1, bias=False)
-    
+        self.conv1 = nn.Conv2d(in_channels, bn_size * growth_rate, 1, bias=False)
+        self.bn2 = nn.BatchNorm2d(bn_size * growth_rate)
+        self.conv2 = nn.Conv2d(bn_size * growth_rate, growth_rate, 3, 1, 1, bias=False)
+        self.drop_rate = drop_rate
+        
     def forward(self, x):
-        out = self.conv1(self.relu(self.bn1(x)))
-        out = self.conv2(self.relu(self.bn2(out)))
-        return torch.cat([x, out], 1)
+        new_features = self.conv1(self.relu(self.bn1(x)))
+        new_features = self.conv2(self.relu(self.bn2(new_features)))
+        if self.drop_rate > 0:
+            new_features = nn.functional.dropout(new_features, p=self.drop_rate, training=self.training)
+        return torch.cat([x, new_features], 1)
 
-# DenseBlock using nn.Sequential
 class DenseBlock(nn.Sequential):
-    def __init__(self, num_layers, in_channels, growth_rate):
+    def __init__(self, num_layers, in_channels, growth_rate, bn_size=4, drop_rate=0):
         super().__init__()
         for i in range(num_layers):
-            layer = Bottleneck(in_channels + i * growth_rate, growth_rate)
+            layer = DenseLayer(in_channels + i * growth_rate, growth_rate, bn_size, drop_rate)
             self.add_module(f'denselayer{i+1}', layer)
 
-# Transition layer
-class Transition(nn.Module):
-    def __init__(self, in_channels, compression=0.5):
+class Transition(nn.Sequential):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
-        out_channels = int(in_channels * compression)
-        self.bn = nn.BatchNorm2d(in_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        self.pool = nn.AvgPool2d(kernel_size=2, stride=2)
-    
-    def forward(self, x):
-        out = self.conv(self.relu(self.bn(x)))
-        return self.pool(out)
+        self.add_module('norm', nn.BatchNorm2d(in_channels))
+        self.add_module('relu', nn.ReLU(inplace=True))
+        self.add_module('conv', nn.Conv2d(in_channels, out_channels, 1, bias=False))
+        self.add_module('pool', nn.AvgPool2d(2, stride=2))
 
-# DenseNet
 class DenseNet(nn.Module):
-    def __init__(self, num_classes=10, growth_rate=32, block_layers=[6, 12, 24, 16], 
-                 compression=0.5, num_init_features=64):
+    def __init__(self, growth_rate=12, block_config=(6, 12, 12), 
+                 num_init_features=16, bn_size=4, drop_rate=0, num_classes=10):
         super().__init__()
         
-        # Initial convolution
+        # Initial convolution (CIFAR 논문 기준: 16 or 2*growth_rate)
         self.features = nn.Sequential()
-        if num_classes == 100 or num_classes > 10:  # for CIFAR-100
-            self.features.add_module('conv0', nn.Conv2d(3, num_init_features, 
-                                                       kernel_size=3, stride=1, 
-                                                       padding=1, bias=False))
-        else:  # for CIFAR-10
-            self.features.add_module('conv0', nn.Conv2d(3, num_init_features, 
-                                                       kernel_size=3, stride=1, 
-                                                       padding=1, bias=False))
+        self.features.add_module('conv0', nn.Conv2d(3, num_init_features, 3, 1, 1, bias=False))
         self.features.add_module('norm0', nn.BatchNorm2d(num_init_features))
         self.features.add_module('relu0', nn.ReLU(inplace=True))
         
-        # DenseBlocks and Transitions using ModuleList
+        # Dense blocks using ModuleList (6월 5일 comment)
         num_features = num_init_features
-        for i, num_layers in enumerate(block_layers):
-            # DenseBlock
-            block = DenseBlock(num_layers, num_features, growth_rate)
-            self.features.add_module(f'denseblock{i+1}', block)
-            num_features += num_layers * growth_rate
+        block_layers = []
+        
+        for i, num_layers in enumerate(block_config):
+            block = DenseBlock(num_layers, num_features, growth_rate, bn_size, drop_rate)
+            block_layers.append(block)
+            num_features = num_features + num_layers * growth_rate
             
-            # Transition layer (except for last block)
-            if i != len(block_layers) - 1:
-                trans = Transition(num_features, compression)
-                self.features.add_module(f'transition{i+1}', trans)
-                num_features = int(num_features * compression)
+            if i != len(block_config) - 1:
+                # Transition layer with compression (논문: θ=0.5)
+                trans = Transition(num_features, num_features // 2)
+                block_layers.append(trans)
+                num_features = num_features // 2
+        
+        self.block_layers = nn.ModuleList(block_layers)
         
         # Final batch norm
-        self.features.add_module('norm5', nn.BatchNorm2d(num_features))
-        self.features.add_module('relu5', nn.ReLU(inplace=True))
+        self.final_bn = nn.BatchNorm2d(num_features)
+        self.relu = nn.ReLU(inplace=True)
         
-        # Classification layer
+        # Classifier
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.classifier = nn.Linear(num_features, num_classes)
         
-        # Weight initialization
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.constant_(m.bias, 0)
-    
     def forward(self, x):
-        features = self.features(x)
-        out = self.avgpool(features)
-        out = torch.flatten(out, 1)
-        out = self.classifier(out)
-        return out
+        x = self.features(x)
+        
+        for layer in self.block_layers:
+            x = layer(x)
+            
+        x = self.relu(self.final_bn(x))
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
+    
+    def _extract_features(self, x):
+        x = self.features(x)
+        for layer in self.block_layers:
+            x = layer(x)
+        x = self.relu(self.final_bn(x))
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        return x
 
-# test
-if __name__ == "__main__":
-    model = DenseNet(num_classes=100, block_layers=[6, 12, 24, 16])
-    print(model)
-    x = torch.randn(1, 3, 32, 32)
-    y = model(x)
-    print("Output shape:", y.shape)
+def densenet(num_classes=10, **kwargs):
+    """DenseNet for CIFAR (논문 기준)"""
+    if num_classes == 100:
+        # CIFAR-100: DenseNet-BC (L=100, k=12)
+        return DenseNet(growth_rate=12, block_config=(16, 16, 16), 
+                       num_init_features=24, num_classes=num_classes, **kwargs)
+    else:
+        # CIFAR-10: DenseNet (L=40, k=12)
+        return DenseNet(growth_rate=12, block_config=(6, 6, 6), 
+                       num_init_features=16, num_classes=num_classes, **kwargs)
