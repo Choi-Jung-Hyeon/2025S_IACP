@@ -3,6 +3,7 @@ from .DenseNet import densenet
 from .PreActResNet import preactresnet
 from .FractalNet import fractalnet
 from .rotnet import rotnet
+from .ViT import ViT
 
 def load_model(model_name, num_classes=10, **kwargs):
     """Load model with specified parameters"""
@@ -21,5 +22,7 @@ def load_model(model_name, num_classes=10, **kwargs):
     elif model_name == "rotnet":
         num_blocks = kwargs.get('num_blocks', 4)
         return rotnet(num_classes=num_classes, num_blocks=num_blocks)
+    elif model_name == "vit":
+        return ViT(num_classes=num_classes)
     else:
         raise ValueError(f"Unknown model: {model_name}")
