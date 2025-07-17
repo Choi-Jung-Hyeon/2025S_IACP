@@ -124,11 +124,21 @@ class ViT(nn.Module):
         )
     
     def forward(self, x):
-        out = self.Embedding(x)
+        x = self.Embedding(x)
         
         for layer in self.Encoder_layers:
-            out = layer(out)
+            x = layer(x)
 
-        out = self.MLP_head(out[:, 0])
+        x = self.MLP_head(x[:, 0])
         
-        return out
+        return x
+    
+    def _extract_features(self, x):
+        x = self.Embedding(x)
+        
+        for layer in self.Encoder_layers:
+            x = layer(x)
+
+        x = self.MLP_head(x[:, 0])
+        
+        return x
