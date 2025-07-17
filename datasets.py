@@ -22,8 +22,8 @@ def load_dataset(dataset_name, train=True, ssl_mode=False):
     if train:
         # Training augmentation
         transform = transforms.Compose([
-            transforms.RandomResizedCrop(32, scale=(0.8, 1.0)),
-            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ])
@@ -36,11 +36,11 @@ def load_dataset(dataset_name, train=True, ssl_mode=False):
     
     if dataset_name == "cifar10":
         dataset = torchvision.datasets.CIFAR10(
-            root='./archive', train=train, download=False, transform=transform
+            root='./data', train=train, download=True, transform=transform
         )
     elif dataset_name == "cifar100":
         dataset = torchvision.datasets.CIFAR100(
-            root='./archive', train=train, download=False, transform=transform
+            root='./data', train=train, download=True, transform=transform
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
