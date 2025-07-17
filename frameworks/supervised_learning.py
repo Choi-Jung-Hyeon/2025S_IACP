@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class SupervisedLearning(nn.Module):
-    """Base framework for supervised learning (7월 10일 Comment(1))"""
+    """Base framework for supervised learning"""
     def __init__(self, encoder):
         super().__init__()
         self.encoder = encoder
