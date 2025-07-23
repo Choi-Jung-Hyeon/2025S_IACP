@@ -1,15 +1,18 @@
-from .resnet import resnet34
-from .preactresnet import preactresnet
-from .densenet import densenet
-from .fractalnet import fractalnet
+from .ResNet import resnet34, resnet18
+from .DenseNet import densenet
+from .PreActResNet import preactresnet
+from .FractalNet import fractalnet
 from .rotnet import rotnet
+from .ViT import ViT
 
 def load_model(model_name, num_classes=10, **kwargs):
     models = {
+        'resnet18' : resnet18,
         'resnet34': resnet34,
         'preactresnet': preactresnet,
         'densenet': densenet,
         'fractalnet': fractalnet,
+        'vit' : vit,
         'rotnet': rotnet
     }
     
