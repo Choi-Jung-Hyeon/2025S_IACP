@@ -96,12 +96,13 @@ class Encoder(nn.Module):
             nn.GELU(),
             nn.Linear(MLP_size, d_model),
         ) 
-        self.LN = nn.LayerNorm(d_model)
+        self.LN1 = nn.LayerNorm(d_model)
+        self.LN2 = nn.LayerNorm(d_model)
         
     def forward(self, x):
         # Pre-LN (Layer Normalization -> Sublayer -> Residual)
-        x = x + self.MSA(self.LN(x))
-        x = x + self.MLP(self.LN(x))
+        x = x + self.MSA(self.LN1(x))
+        x = x + self.MLP(self.LN2(x))
         return x
 
 class ViT(nn.Module):
@@ -139,6 +140,4 @@ class ViT(nn.Module):
         for layer in self.Encoder_layers:
             x = layer(x)
 
-        x = self.MLP_head(x[:, 0])
-        
-        return x
+        return x[:, 0]
