@@ -32,9 +32,13 @@ def load_dataset(dataset_name, train=True, ssl_mode=False):
     transform = get_transforms(train)
     
     if dataset_name == "cifar10":
-        dataset = torchvision.datasets.CIFAR10('./archive', train, transform=transform)
+        dataset = torchvision.datasets.CIFAR10(
+            root='./data', train=train, download=True, transform=transform
+        )
     elif dataset_name == "cifar100":
-        dataset = torchvision.datasets.CIFAR100('./archive', train, transform=transform)
+        dataset = torchvision.datasets.CIFAR100(
+            root='./data', train=train, download=True, transform=transform
+        )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
