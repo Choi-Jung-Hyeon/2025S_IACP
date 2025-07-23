@@ -15,7 +15,7 @@ def main(args):
     train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_mode=False)
     test_dataset = datasets.load_dataset(args.dataset, train=False, ssl_mode=False)
 
-    # 데이터로더 생성 (사용자 인자 직접 사용)
+    # 데이터로더 생성
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
     
@@ -33,7 +33,7 @@ def main(args):
         raise ValueError(f"Unsupported optimizer: {args.optimizer}")
 
     criterion = nn.CrossEntropyLoss()
-    # 스케줄러 설정 (사용자 인자 직접 사용)
+    # 스케줄러 설정
     scheduler = StepLR(optimizer, step_size=args.lr_step, gamma=args.lr_gamma)
     
     print("=" * 70)
@@ -95,7 +95,7 @@ def main(args):
             if test_accuracies:
                 test_accuracies.append(test_accuracies[-1])
             else:
-                test_accuracies.append(0) # 첫 에포크부터 평가 안 할 경우
+                test_accuracies.append(0)
         
         scheduler.step()
     
