@@ -70,11 +70,11 @@ class ResNet(nn.Module):
         self.conv4 = self._make_layer(block, 256, layers[2], stride=2)
         self.conv5 = self._make_layer(block, 512, layers[3], stride=2)
 
-        self.classifier = nn.Sequential(
+        self.feature_head = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(512 * block.constant, num_classes)
+            nn.Flatten()
         )
+        self.classifier = nn.Linear(512 * block.constant, num_classes)
 
     def _make_layer(self, block, out_channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -90,6 +90,7 @@ class ResNet(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv5(x)
+        x = self.feature_head(x)
         x = self.classifier(x)
         return x
 
@@ -99,7 +100,7 @@ class ResNet(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv5(x)
-        x = torch.flatten(x, 1)
+        x = self.feature_head(x)
         return x
     
 def resnet18(num_classes=10):
