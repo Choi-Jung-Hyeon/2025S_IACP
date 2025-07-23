@@ -16,24 +16,33 @@ class BaseFramework(nn.Module):
         raise NotImplementedError
     
     def extract_features(self, x):
-        with torch.no_grad():
-            if hasattr(self.encoder, '_extract_features'):
-                return self.encoder._extract_features(x)
-            return self.encoder(x)
+        if hasattr(self.encoder, '_extract_features'):
+            return self.encoder._extract_features(x)
+        return self.encoder(x)
     
     def move_batch_to_device(self, batch, device):
-        if isinstance(batch, tuple):
-            return tuple(b.to(device) if torch.is_tensor(b) else b for b in batch)
-        return batch.to(device)
+        # batch가 tuple 뿐만 아니라 list인 경우도 처리하도록 수정
+        
+        if isinstance(batch, (tuple, list)):
+            return type(batch)(b.to(device) if torch.is_tensor(b) else b for b in batch)
+        
+        if torch.is_tensor(batch):
+            return batch.to(device)
+        
+        return batch
     
     def collect_features(self, data_loader, device):
         self.eval()
         features, labels = [], []
-        
+
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.move_batch_to_device(batch, device)
-                x, y = batch if isinstance(batch, tuple) else (batch, None)
+                
+                if isinstance(batch, (tuple, list)):
+                    x, y = batch
+                else:
+                    x, y = batch, None
                 
                 feat = self.extract_features(x)
                 features.append(feat.cpu().numpy())
