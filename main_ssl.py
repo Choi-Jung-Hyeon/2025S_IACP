@@ -5,7 +5,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
 
-# 로컬 파일 임포트
 import models
 import datasets
 import frameworks
