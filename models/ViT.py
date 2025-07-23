@@ -105,7 +105,7 @@ class Encoder(nn.Module):
         x = x + self.MLP(self.LN2(x))
         return x
 
-class ViT(nn.Module):
+class vit(nn.Module):
     def __init__(self, num_classes, in_channels=3, height=32, width=32, patch_size=4, 
                  d_model=192, num_layers=12, num_head=12, MLP_size=384, hybrid=False):
         super().__init__()
