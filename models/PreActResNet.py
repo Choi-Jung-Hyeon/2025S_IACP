@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 class PreActBlock(nn.Module):
-
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
 
@@ -30,22 +29,21 @@ class PreActResNet(nn.Module):
         super().__init__()
         self.in_channels = 64
 
-        self.stem = nn.Sequential(
-            nn.Conv2d(3, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        )
+        self.stem = nn.Conv2d(3, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
         
         self.conv2 = self._make_layer(block, 64, layers[0], stride=1)
         self.conv3 = self._make_layer(block, 128, layers[1], stride=2)
         self.conv4 = self._make_layer(block, 256, layers[2], stride=2)
         self.conv5 = self._make_layer(block, 512, layers[3], stride=2)
         
-        self.classifier = nn.Sequential(
+        self.feature_head = nn.Sequential(
             nn.BatchNorm2d(512),
             nn.ReLU(),
             nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(512, num_classes)
+            nn.Flatten()
         )
+        
+        self.classifier = nn.Linear(512, num_classes)
 
     def _make_layer(self, block, out_channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -61,6 +59,7 @@ class PreActResNet(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv5(x)
+        x = self.feature_head(x)
         x = self.classifier(x)
         return x
         
@@ -69,9 +68,10 @@ class PreActResNet(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x)
         x = self.conv4(x)
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
+        x = self.conv5(x)
+        x = self.feature_head(x)
         return x
 
 def preactresnet(num_classes=10):
+    """PreActResNet-18"""
     return PreActResNet(PreActBlock, [2, 2, 2, 2], num_classes)
