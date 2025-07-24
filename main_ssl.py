@@ -58,6 +58,8 @@ def main(args):
     # Initialize framework
     if args.framework == "rotnet":
         framework = frameworks.RotNet(encoder)
+    elif args.framework == "simclr":
+        framework = frameworks.SimCLR(encoder)
     else:
         raise ValueError(f"Framework {args.framework} not implemented")
     
@@ -122,7 +124,7 @@ if __name__ == "__main__":
     
     # Framework
     parser.add_argument("--framework", type=str, default="rotnet",
-                       choices=["rotnet"], help="SSL framework")
+                       choices=["rotnet", "simclr"], help="SSL framework")
     parser.add_argument("--model", type=str, default="rotnet", 
                        help="Encoder: rotnet, resnet34, densenet, fractalnet, preactresnet")
     parser.add_argument("--dataset", type=str, default="cifar10",
