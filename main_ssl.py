@@ -22,12 +22,14 @@ def main(args):
     
     # Initialize framework
     if args.framework == "rotnet":
-        framework = frameworks.Rotnet(encoder)
+        framework = frameworks.RotNet(encoder)
+    elif args.framework == "simclr":
+        framework = frameworks.SimCLR(encoder)
     else:
         raise ValueError(f"Framework {args.framework} not implemented")
 
     # Load datasets
-    train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_mode=True)
+    train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_mode=args.framework)
     test_dataset = datasets.load_dataset(args.dataset, train=False, ssl_mode=False)
     train_labeled = datasets.load_dataset(args.dataset, train=True, ssl_mode=False)
     
@@ -119,11 +121,13 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Self-Supervised Learning')
     
-    # Framework & Model
-    parser.add_argument("--framework", type=str, default="rotnet", choices=["rotnet"], help="SSL framework")
-    parser.add_argument("--model", type=str, default="rotnet", help="Encoder: rotnet, resnet34, etc.")
-    parser.add_argument("--dataset", type=str, default="cifar10", help="Dataset: cifar10 or cifar100")
-    
+    # Framework
+    parser.add_argument("--framework", type=str, default="rotnet",
+                       choices=["rotnet", "simclr"], help="SSL framework")
+    parser.add_argument("--model", type=str, default="rotnet", 
+                       help="Encoder: rotnet, resnet34, densenet, fractalnet, preactresnet")
+    parser.add_argument("--dataset", type=str, default="cifar10",
+                       help="Dataset: cifar10 or cifar100")
     # Optimizer
     parser.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "adam", "adamw"], help="Optimizer type")
 
