@@ -5,15 +5,31 @@ from torch.utils.data import Dataset
 
 class SSLDataset(Dataset):
     """Dataset wrapper for SSL mode (labels 제거)"""
-    def __init__(self, base_dataset):
+    def __init__(self, base_dataset, transform=None):
         self.base_dataset = base_dataset
+        self.transform = transform
         
     def __len__(self):
         return len(self.base_dataset)
     
     def __getitem__(self, idx):
         image, _ = self.base_dataset[idx]  # Ignore labels for SSL
-        return image
+        return self.transform(image)
+
+class SimCLRDataset(Dataset):
+    """Dataset wrapper for SSL mode (labels 제거)"""
+    def __init__(self, base_dataset, transform=None):
+        self.base_dataset = base_dataset
+        self.transform = transform
+        
+    def __len__(self):
+        return len(self.base_dataset)
+    
+    def __getitem__(self, idx):
+        x, _ = self.base_dataset[idx]
+        x_i = self.transform(x)
+        x_j = self.transform(x)
+        return (x_i, x_j), 0
 
 def load_dataset(dataset_name, train=True, ssl_mode=False):
     """Load dataset with proper augmentation (6월 5일 comment)"""
@@ -36,18 +52,22 @@ def load_dataset(dataset_name, train=True, ssl_mode=False):
     
     if dataset_name == "cifar10":
         dataset = torchvision.datasets.CIFAR10(
-            root='./data', train=train, download=True, transform=transform
+            root='./data', train=train, download=True, transform=None
         )
     elif dataset_name == "cifar100":
         dataset = torchvision.datasets.CIFAR100(
-            root='./data', train=train, download=True, transform=transform
+            root='./data', train=train, download=True, transform=None
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
     # SSL mode: remove labels
-    if ssl_mode and train:
-        dataset = SSLDataset(dataset)
+    if ssl_mode == "simclr" and train:
+        dataset = SimCLRDataset(dataset, transform=transform)
+    elif ssl_mode and train:
+        dataset = SSLDataset(dataset, transform=transform)
+    else:
+        dataset.transform = transform
     
     return dataset
 

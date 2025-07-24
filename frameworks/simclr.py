@@ -19,10 +19,7 @@ class SimCLR(SupervisedLearning):
         self.temperature = temperature
         
     def forward(self, batch):
-        if isinstance(batch, tuple):
-            (x_i, x_j), _ = batch  # 두 augmented 뷰
-        else:
-            x_i, x_j = batch
+        (x_i, x_j), _ = batch  # 두 augmented 뷰
         h_i = self.encoder(x_i)
         h_j = self.encoder(x_j)
         
@@ -31,6 +28,13 @@ class SimCLR(SupervisedLearning):
 
         loss = self.nt_xent_loss(z_i, z_j)
         return loss
+
+    def move_batch_to_device(self, batch, device):
+        (x_i, x_j), y = batch
+        x_i = x_i.to(device)
+        x_j = x_j.to(device)
+        y = y.to(device)
+        return (x_i, x_j), y
     
     def nt_xent_loss(self, z_i, z_j):
         batch_size = z_i.shape[0]

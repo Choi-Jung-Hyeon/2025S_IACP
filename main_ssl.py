@@ -64,7 +64,7 @@ def main(args):
         raise ValueError(f"Framework {args.framework} not implemented")
     
     # Load datasets
-    train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_mode=True)
+    train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_mode=args.framework)
     test_dataset = datasets.load_dataset(args.dataset, train=False, ssl_mode=False)
     
     # Separate labeled dataset for k-NN evaluation
