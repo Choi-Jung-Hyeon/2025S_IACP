@@ -18,9 +18,18 @@ class SSLDataset(Dataset):
 
 class SimCLRDataset(Dataset):
     """Dataset wrapper for SSL mode (labels 제거)"""
-    def __init__(self, base_dataset, transform=None):
+    def __init__(self, base_dataset):
         self.base_dataset = base_dataset
-        self.transform = transform
+        color_jitter = transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)
+        size = 32
+        self.transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=size, scale=(0.2, 1.0), ratio=(3./4., 4./3.)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([color_jitter], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.GaussianBlur(kernel_size=int(0.1 * size), sigma=(0.1, 2.0)),
+            transforms.ToTensor()
+        ])
         
     def __len__(self):
         return len(self.base_dataset)
@@ -63,7 +72,7 @@ def load_dataset(dataset_name, train=True, ssl_mode=False):
     
     # SSL mode: remove labels
     if ssl_mode == "simclr" and train:
-        dataset = SimCLRDataset(dataset, transform=transform)
+        dataset = SimCLRDataset(dataset)
     elif ssl_mode and train:
         dataset = SSLDataset(dataset, transform=transform)
     else:
