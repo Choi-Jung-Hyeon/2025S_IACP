@@ -22,7 +22,7 @@ def main(args):
     
     # Initialize framework
     if args.framework == "rotnet":
-        framework = frameworks.RotNet(encoder)
+        framework = frameworks.Rotnet(encoder)
     elif args.framework == "simclr":
         framework = frameworks.SimCLR(encoder)
     else:
