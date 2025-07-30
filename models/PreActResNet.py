@@ -43,7 +43,7 @@ class PreActResNet(nn.Module):
             nn.Flatten()
         )
         
-        self.classifier = nn.Linear(512, num_classes)
+        self.fc = nn.Linear(512, num_classes)
 
     def _make_layer(self, block, out_channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -60,7 +60,7 @@ class PreActResNet(nn.Module):
         x = self.conv4(x)
         x = self.conv5(x)
         x = self.feature_head(x)
-        x = self.classifier(x)
+        x = self.fc(x)
         return x
         
     def _extract_features(self, x):
