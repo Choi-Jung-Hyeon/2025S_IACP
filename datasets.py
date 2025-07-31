@@ -54,9 +54,7 @@ def get_transforms(train=True):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ])
 
-def load_dataset(dataset_name, train=True, ssl_mode=False):
-    transform = get_transforms(train)
-    
+def load_dataset(dataset_name, train=True, ssl_framework=None):
     if dataset_name == "cifar10":
         dataset = torchvision.datasets.CIFAR10(
             root='./data', train=train, download=True, transform=None
@@ -68,12 +66,13 @@ def load_dataset(dataset_name, train=True, ssl_mode=False):
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
-    # SSL mode: remove labels
-    if ssl_mode == "simclr" and train:
+    if ssl_framework == "simclr" and train:
         dataset = SimCLRDataset(dataset)
-    elif ssl_mode and train:
+    elif ssl_framework and train: # 'rotnet' 등 다른 SSL 프레임워크
+        transform = get_transforms(train=True)
         dataset = SSLDataset(dataset, transform=transform)
-    else:
+    else: # 지도학습 또는 평가
+        transform = get_transforms(train)
         dataset.transform = transform
     
     return dataset
