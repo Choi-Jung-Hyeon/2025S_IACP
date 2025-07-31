@@ -47,17 +47,26 @@ class SimCLR(SupervisedLearning):
         sim_matrix = sim_matrix.masked_fill(mask, -9e15)  
         
         sim_matrix /= self.temperature
-        '''
-        positives = torch.cat([
-            torch.diag(sim_matrix, batch_size),
-            torch.diag(sim_matrix, -batch_size)
-        ], dim=0).unsqueeze(1)
         
-        labels = torch.zeros(2 * batch_size, dtype=torch.long).to(z.device)
-        logits = torch.cat([positives, sim_matrix], dim=1)
-        '''
         labels = (torch.arange(batch_size) + batch_size).to(z.device)
         labels = torch.cat([labels, torch.arange(batch_size).to(z.device)], dim=0)
 
         loss = F.cross_entropy(sim_matrix, labels)
         return loss
+
+    def collect_features(self, data_loader, device):
+        self.eval()
+        features, labels = [], []
+	
+        with torch.no_grad():
+            for batch in data_loader:
+                x_i, y = batch
+                x_i, y = x_i.to(device), y.to(device)
+                feat = self.extract_features(x_i)
+                features.append(feat)
+                if y is not None:
+                    labels.append(y)
+
+        features = torch.cat(features, dim=0) if features else None
+        labels = torch.cat(labels, dim=0) if labels else None
+        return features, labels
