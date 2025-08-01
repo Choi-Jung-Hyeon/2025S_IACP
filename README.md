@@ -131,3 +131,13 @@ python3 main.py --framework rotnet --model preactresnet --dataset cifar10
 - **1-NN evaluation**: Fine-tuning 없이 L2 distance
 - **Framework 상속**: supervised_learning.py 기반 모듈화
 - **Test loss tracking**: 10 epoch마다 test loss 출력
+
+
+# 자주 쓰는 명령어
+```
+Ctrl+b → %               tmux: 오른쪽에 새 창 생성
+Ctrl+b → "               tmux: 아래에 새 창 생성
+Ctrl+b → (방향키)        tmux: 방향키 방향의 창으로 이동
+Ctrl+d                   tmux: 현재 창 닫기
+watch -n 0.1 nvidia-smi  GPU 사용량을 0.1초마다 모니터링
+```
