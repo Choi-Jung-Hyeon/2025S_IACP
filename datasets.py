@@ -20,15 +20,15 @@ class SimCLRDataset(Dataset):
     """Dataset wrapper for SSL mode (labels 제거)"""
     def __init__(self, base_dataset):
         self.base_dataset = base_dataset
-        color_jitter = transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)
+        color_jitter = transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
         size = 32
         self.transform = transforms.Compose([
             transforms.RandomResizedCrop(size=size, scale=(0.2, 1.0), ratio=(3./4., 4./3.)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply([color_jitter], p=0.8),
             transforms.RandomGrayscale(p=0.2),
-            transforms.GaussianBlur(kernel_size=int(0.1 * size), sigma=(0.1, 2.0)),
             transforms.ToTensor()
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ])
         
     def __len__(self):
