@@ -2,19 +2,69 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from pytorch_optimizer import load_optimizer
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR, StepLR
+import matplotlib.pyplot as plt
+import os
 
 import models
 import datasets
 import frameworks
+
+def plot_ssl_accuracy_graph(eval_epochs, test_accs, args):
+    # SSL(1-NN) 테스트 정확도 그래프를 그리고 저장하는 함수
+    plt.figure(figsize=(10, 6))
+    plt.plot(eval_epochs, test_accs, 'o-', label='1-NN Test Accuracy')
+
+    title = f'1-NN Accuracy over Epochs\nModel: {args.model}, Framework: {args.framework}, Dataset: {args.dataset}'
+    plt.title(title, fontsize=16)
+    plt.xlabel('Epochs', fontsize=12)
+    plt.ylabel('Accuracy (%)', fontsize=12)
+    plt.legend()
+    plt.grid(True)
+    plt.ylim(0, max(100, max(test_accs) * 1.1 if test_accs else 100))
+
+    # 그래프 저장
+    save_dir = 'plots'
+    os.makedirs(save_dir, exist_ok=True)
+    file_name = f'{args.model}_{args.dataset}_{args.framework}_1nn_accuracy.png'
+    save_path = os.path.join(save_dir, file_name)
+    plt.savefig(save_path)
+    
+    print(f"\n1-NN Accuracy plot saved to: {save_path}")
+
+def plot_supervised_accuracy_graph(epochs, train_accs, test_accs, args):
+    # 지도학습의 학습 및 테스트 정확도 그래프를 그리고 저장하는 함수
+    plt.figure(figsize=(10, 6))
+    epoch_range = range(1, epochs + 1)
+    
+    plt.plot(epoch_range, train_accs, '-', label='Training Accuracy')
+    plt.plot(epoch_range, test_accs, '-', label='Test Accuracy')
+    
+    title = f'Supervised Accuracy\nModel: {args.model}, Dataset: {args.dataset}, Optimizer: {args.optimizer.upper()}'
+    plt.title(title, fontsize=16)
+    plt.xlabel('Epochs', fontsize=12)
+    plt.ylabel('Accuracy (%)', fontsize=12)
+    plt.legend()
+    plt.grid(True)
+    plt.ylim(0, 100)
+    
+    # 그래프 저장
+    save_dir = 'plots'
+    os.makedirs(save_dir, exist_ok=True)
+    file_name = f'{args.model}_{args.dataset}_{args.optimizer}_accuracy.png'
+    save_path = os.path.join(save_dir, file_name)
+    plt.savefig(save_path)
+    
+    print(f"\nAccuracy plot saved to: {save_path}")
 
 def run_ssl(args):
     # Setup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     num_classes = datasets.get_num_classes(args.dataset)
         
-    # Load encoder model
+    # encoder model 로딩
     if args.model == "rotnet":
         encoder = models.rotnet(num_classes=4, num_blocks=args.num_blocks)
     else:
@@ -55,8 +105,11 @@ def run_ssl(args):
         optimizer = optim.Adam(framework.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == 'adamw':
         optimizer = optim.AdamW(framework.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == 'lars':
+        optimizer = load_optimizer('lars')(framework.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     
     scheduler = MultiStepLR(optimizer, milestones=args.lr_milestones, gamma=args.ssl_lr_gamma)
+    eval_epochs, test_accuracies = [], []
     
     # 학습 및 평가 루프
     for epoch in range(args.num_epochs):
@@ -78,8 +131,14 @@ def run_ssl(args):
             train_features, train_labels = framework.collect_features(train_labeled_loader, device)
             test_features, test_labels = framework.collect_features(test_loader, device)
             accuracy = framework.knn_evaluation(train_features, train_labels, test_features, test_labels)
-            print(f"Epoch [{epoch+1}] 1-NN Test Accuracy: {accuracy.item()*100:.2f}%")
+            accuracy_percent = accuracy.item() * 100
+            print(f"Epoch [{epoch+1}] 1-NN Test Accuracy: {accuracy_percent:.2f}%")
+            eval_epochs.append(epoch + 1)
+            test_accuracies.append(accuracy_percent)
             framework.train()
+    print("\nSSL Traning Finished.")
+    if eval_epochs:
+        plot_ssl_accuracy_graph(eval_epochs, test_accuracies, args)
 
 def run_supervised(args):
     # 모델 및 데이터셋 로드
@@ -113,6 +172,8 @@ def run_supervised(args):
     print(f"Epochs: {args.num_epochs}, Batch Size: {args.batch_size}, Learning Rate: {args.lr}")
     print(f"LR Step: {args.lr_step}, LR Gamma (Supervised): {args.sup_lr_gamma}")
     print("=" * 70)
+
+    train_accuracies, test_accuracies = [], []
     
     # 학습 루프
     for epoch in range(args.num_epochs):
@@ -134,6 +195,9 @@ def run_supervised(args):
             
             if (batch_idx + 1) % args.print_freq == 0:
                 print(f'Epoch: [{epoch+1}/{args.num_epochs}] | Step: [{batch_idx+1}/{len(train_loader)}] | Acc: {100.*correct_train/total_train:.2f}%')
+
+        epoch_train_acc = 100. * correct_train / total_train
+        train_accuracies.append(epoch_train_acc)
         
         # 평가
         model.eval()
@@ -146,9 +210,15 @@ def run_supervised(args):
                 _, predicted = outputs.max(1)
                 total_test += labels.size(0)
                 correct_test += predicted.eq(labels).sum().item()
+
+        epoch_test_acc = 100. * correct_test / total_test
+        test_accuracies.append(epoch_test_acc)
         
         print(f'Epoch [{epoch+1}] Test Acc: {100.*correct_test/total_test:.2f}%')
         scheduler.step()
+
+    print("\nSuperviced Learning Finished.")
+    plot_supervised_accuracy_graph(args.num_epochs, train_accuracies, test_accuracies, args)
 
 def main(args):
     if args.framework == 'supervised':
@@ -161,10 +231,10 @@ if __name__ == "__main__":
     
     # 공통 인자 그룹
     common_parser = parser.add_argument_group('Common Arguments')
-    common_parser.add_argument("--framework", type=str, default="rotnet", choices=["rotnet", "simclr", "supervised"], help="Framework")
+    common_parser.add_argument("--framework", type=str, default="supervised", choices=["rotnet", "simclr", "supervised"], help="Framework")
     common_parser.add_argument("--model", type=str, default="resnet18", help="Encoder model")
     common_parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100"], help="Dataset")
-    common_parser.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "adam", "adamw"], help="Optimizer")
+    common_parser.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "adam", "adamw", "lars"], help="Optimizer")
     common_parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")
     common_parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     common_parser.add_argument("--lr", type=float, default=0.1, help="Initial learning rate")
