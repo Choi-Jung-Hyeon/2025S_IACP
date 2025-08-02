@@ -1,17 +1,19 @@
 import argparse
-import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from pytorch_optimizer import load_optimizer
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR, StepLR
 import matplotlib.pyplot as plt
+import os
 
 import models
 import datasets
 import frameworks
+
 def plot_ssl_accuracy_graph(eval_epochs, test_accs, args):
-    """SSL(1-NN) 테스트 정확도 그래프를 그리고 저장하는 함수"""
+    # SSL(1-NN) 테스트 정확도 그래프를 그리고 저장하는 함수
     plt.figure(figsize=(10, 6))
     plt.plot(eval_epochs, test_accs, 'o-', label='1-NN Test Accuracy')
 
@@ -33,7 +35,7 @@ def plot_ssl_accuracy_graph(eval_epochs, test_accs, args):
     print(f"\n1-NN Accuracy plot saved to: {save_path}")
 
 def plot_supervised_accuracy_graph(epochs, train_accs, test_accs, args):
-    """지도학습의 학습 및 테스트 정확도 그래프를 그리고 저장하는 함수"""
+    # 지도학습의 학습 및 테스트 정확도 그래프를 그리고 저장하는 함수
     plt.figure(figsize=(10, 6))
     epoch_range = range(1, epochs + 1)
     
@@ -62,7 +64,7 @@ def run_ssl(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     num_classes = datasets.get_num_classes(args.dataset)
         
-    # Load encoder model
+    # encoder model 로딩
     if args.model == "rotnet":
         encoder = models.rotnet(num_classes=4, num_blocks=args.num_blocks)
     else:
@@ -103,6 +105,8 @@ def run_ssl(args):
         optimizer = optim.Adam(framework.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == 'adamw':
         optimizer = optim.AdamW(framework.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == 'lars':
+        optimizer = load_optimizer('lars')(framework.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     
     scheduler = MultiStepLR(optimizer, milestones=args.lr_milestones, gamma=args.ssl_lr_gamma)
     eval_epochs, test_accuracies = [], []
@@ -227,10 +231,10 @@ if __name__ == "__main__":
     
     # 공통 인자 그룹
     common_parser = parser.add_argument_group('Common Arguments')
-    common_parser.add_argument("--framework", type=str, default="rotnet", choices=["rotnet", "simclr", "supervised"], help="Framework")
+    common_parser.add_argument("--framework", type=str, default="supervised", choices=["rotnet", "simclr", "supervised"], help="Framework")
     common_parser.add_argument("--model", type=str, default="resnet18", help="Encoder model")
     common_parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100"], help="Dataset")
-    common_parser.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "adam", "adamw"], help="Optimizer")
+    common_parser.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "adam", "adamw", "lars"], help="Optimizer")
     common_parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")
     common_parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     common_parser.add_argument("--lr", type=float, default=0.1, help="Initial learning rate")
