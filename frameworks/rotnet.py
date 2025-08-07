@@ -9,18 +9,25 @@ class Rotnet(BaseFramework):
         self._remove_classifier()
     
     def _remove_classifier(self):
-        # Remove classifier and add rotation classifier
-        if hasattr(self.encoder, 'classifier'):
+        # Check if encoder has classifier/fc and extract feature dimension
+        if hasattr(self.encoder, 'classifier') and not isinstance(self.encoder.classifier, nn.Identity):
             self.feature_dim = self.encoder.classifier.in_features
             self.encoder.classifier = nn.Identity()
-        elif hasattr(self.encoder, 'fc'):
+        elif hasattr(self.encoder, 'fc') and not isinstance(self.encoder.fc, nn.Identity):
             self.feature_dim = self.encoder.fc.in_features
             self.encoder.fc = nn.Identity()
         else:
-            # For custom models
+            # For models without classifier or already Identity
             with torch.no_grad():
                 dummy = torch.randn(1, 3, 32, 32)
-                self.feature_dim = self.encoder._extract_features(dummy).size(1)
+                if hasattr(self.encoder, '_extract_features'):
+                    self.feature_dim = self.encoder._extract_features(dummy).size(1)
+                else:
+                    # Forward pass to get output dimension
+                    output = self.encoder(dummy)
+                    if isinstance(output, tuple):
+                        output = output[0]
+                    self.feature_dim = output.size(1) if len(output.shape) == 2 else output.view(output.size(0), -1).size(1)
         
         # 4-way rotation classifier
         self.rotation_classifier = nn.Linear(self.feature_dim, 4)
@@ -73,4 +80,7 @@ class Rotnet(BaseFramework):
             return self.encoder._extract_features(x)
         else:
             # For models without _extract_features
-            return self.encoder(x)
+            output = self.encoder(x)
+            if isinstance(output, tuple):
+                return output[0]
+            return output.view(output.size(0), -1) if len(output.shape) > 2 else output
