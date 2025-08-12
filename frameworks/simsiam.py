@@ -1,4 +1,3 @@
-
 import torch.nn as nn
 import torch.nn.functional as F
 from .base import BaseFramework
@@ -31,6 +30,13 @@ class SimSiam(BaseFramework):
             nn.ReLU(inplace=True),
             nn.Linear(prediction_dim, projection_dim)
         )
+        
+    def move_batch_to_device(self, batch, device):
+        (x1, x2), y = batch
+        x1 = x1.to(device)
+        x2 = x2.to(device)
+        y = y.to(device)
+        return (x1, x2), y
 
     def forward(self, batch):
         (x1, x2), _ = batch
