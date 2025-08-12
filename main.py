@@ -70,6 +70,8 @@ def run_ssl(args):
         framework = frameworks.Rotnet(encoder)
     elif args.framework == "simclr":
         framework = frameworks.SimCLR(encoder)
+    elif args.framework == "simsiam":
+        framework = frameworks.SimSiam(encoder)
     else:
         raise ValueError(f"Framework {args.framework} is not a valid SSL framework")
 
@@ -261,7 +263,7 @@ if __name__ == "__main__":
     # Common arguments
     common_parser = parser.add_argument_group('Common Arguments')
     common_parser.add_argument("--framework", type=str, default="supervised", 
-                              choices=["rotnet", "simclr", "supervised"], help="Framework")
+                              choices=["rotnet", "simclr", "simsiam", "supervised"], help="Framework")
     common_parser.add_argument("--model", type=str, default="resnet18", help="Encoder model")
     common_parser.add_argument("--dataset", type=str, default="cifar10", 
                               choices=["cifar10", "cifar100"], help="Dataset")
