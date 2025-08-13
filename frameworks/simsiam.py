@@ -5,7 +5,6 @@ from .base import BaseFramework
 class SimSiam(BaseFramework):
     def __init__(self, encoder, projection_dim=2048, prediction_dim=512):
         super().__init__(encoder)
-        
         if hasattr(self.encoder, 'fc'):
             feature_dim = self.encoder.fc.in_features
             self.encoder.fc = nn.Identity()
@@ -30,13 +29,6 @@ class SimSiam(BaseFramework):
             nn.ReLU(inplace=True),
             nn.Linear(prediction_dim, projection_dim)
         )
-        
-    def move_batch_to_device(self, batch, device):
-        (x1, x2), y = batch
-        x1 = x1.to(device)
-        x2 = x2.to(device)
-        y = y.to(device)
-        return (x1, x2), y
 
     def forward(self, batch):
         (x1, x2), _ = batch
@@ -50,3 +42,12 @@ class SimSiam(BaseFramework):
         loss = -(F.cosine_similarity(p1, z2.detach()).mean() + F.cosine_similarity(p2, z1.detach()).mean()) * 0.5
         
         return loss
+
+    def move_batch_to_device(self, batch, device):
+        if isinstance(batch[0], (tuple, list)):
+            (x1, x2), y = batch
+            x1 = x1.to(device, non_blocking=True)
+            x2 = x2.to(device, non_blocking=True)
+            return (x1, x2), y
+        else:
+            return super().move_batch_to_device(batch, device)
