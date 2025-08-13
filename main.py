@@ -127,6 +127,8 @@ def run_ssl(args):
             
             if (batch_idx + 1) % args.print_freq == 0:
                 print(f'Epoch: [{epoch+1}/{args.num_epochs}] | Step: [{batch_idx+1}/{len(train_loader)}] | Loss: {train_loss/(batch_idx+1):.4f}')
+                
+        scheduler.step()
         
         # 1-NN Evaluation every 10 epochs
         if (epoch + 1) % 10 == 0:
@@ -143,22 +145,6 @@ def run_ssl(args):
             test_accuracies.append(accuracy.item() * 100)
             
             print(f'Epoch [{epoch+1}] 1-NN Test Accuracy: {accuracy.item()*100:.2f}%')
-            
-            # Compute test loss
-            framework.eval()
-            test_loss = 0.0
-            batch_count = 0
-            with torch.no_grad():
-                for batch in test_loader:
-                    if batch_count >= 10:  # First 10 batches for test loss
-                        break
-                    batch = framework.move_batch_to_device(batch, device)
-                    loss = framework(batch)
-                    test_loss += loss.item()
-                    batch_count += 1
-            print(f'Epoch [{epoch+1}] Test Loss (first 10 batches): {test_loss/10:.4f}')
-        
-        scheduler.step()
     
     print("\nSelf-Supervised Learning Finished.")
     if eval_epochs:
