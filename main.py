@@ -65,6 +65,8 @@ def run_ssl(args):
     else:
         encoder = models.load_model(args.model, num_classes=num_classes)
     
+    total_steps = args.num_epochs * len(train_loader)
+
     # Initialize framework
     if args.framework == "rotnet":
         framework = frameworks.Rotnet(encoder)
@@ -72,6 +74,8 @@ def run_ssl(args):
         framework = frameworks.SimCLR(encoder)
     elif args.framework == "simsiam":
         framework = frameworks.SimSiam(encoder)
+    elif args.framework == "byol":
+        framework = frameworks.BYOL(encoder, total_steps=total_steps)
     else:
         raise ValueError(f"Framework {args.framework} is not a valid SSL framework")
 
@@ -111,6 +115,7 @@ def run_ssl(args):
     test_accuracies = []
     
     # Training loop
+    global_step = 0 # 현재 스텝을 추적할 카운터
     for epoch in range(args.num_epochs):
         framework.train()
         train_loss = 0.0
@@ -119,11 +124,12 @@ def run_ssl(args):
             batch = framework.move_batch_to_device(batch, device)
             
             optimizer.zero_grad()
-            loss = framework(batch)
+            loss = framework(batch, step=global_step)
             loss.backward()
             optimizer.step()
             
             train_loss += loss.item()
+            global_step += 1
             
             if (batch_idx + 1) % args.print_freq == 0:
                 print(f'Epoch: [{epoch+1}/{args.num_epochs}] | Step: [{batch_idx+1}/{len(train_loader)}] | Loss: {train_loss/(batch_idx+1):.4f}')
@@ -249,7 +255,8 @@ if __name__ == "__main__":
     # Common arguments
     common_parser = parser.add_argument_group('Common Arguments')
     common_parser.add_argument("--framework", type=str, default="supervised", 
-                              choices=["rotnet", "simclr", "simsiam", "supervised"], help="Framework")
+                              choices=["rotnet", "simclr", "byol", "supervised"],
+                              help="Framework")
     common_parser.add_argument("--model", type=str, default="resnet18", help="Encoder model")
     common_parser.add_argument("--dataset", type=str, default="cifar10", 
                               choices=["cifar10", "cifar100"], help="Dataset")
