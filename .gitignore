@@ -5,3 +5,4 @@ __pycache__/
 models/__pycache__/
 frameworks/__pycache__/
 data/
+plots/

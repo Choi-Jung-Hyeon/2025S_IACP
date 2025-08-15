@@ -66,7 +66,7 @@ def load_dataset(dataset_name, train=True, ssl_framework=None):
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
-    if ssl_framework == "simclr" and train:
+    if ssl_framework in ("simclr", "moco") and train:
         dataset = SimCLRDataset(dataset)
     elif ssl_framework and train: # 'rotnet' 등 다른 SSL 프레임워크
         transform = get_transforms(train=True)
