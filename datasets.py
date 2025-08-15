@@ -17,7 +17,7 @@ class SSLDataset(Dataset):
         return self.transform(image)
 
 class SimCLRDataset(Dataset):
-    """Dataset wrapper for SSL mode (labels 제거)"""
+    """Dataset wrapper for SimCLR (두 개의 augmented views 생성)"""
     def __init__(self, base_dataset):
         self.base_dataset = base_dataset
         color_jitter = transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
@@ -66,12 +66,12 @@ def load_dataset(dataset_name, train=True, ssl_framework=None):
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
-    if ssl_framework in ("simclr", "moco") and train:
+    if ssl_framework in ("simclr", "simsiam", "moco") and train:
         dataset = SimCLRDataset(dataset)
-    elif ssl_framework and train: # 'rotnet' 등 다른 SSL 프레임워크
+    elif ssl_framework and train:  # 'rotnet' 등 다른 SSL 프레임워크
         transform = get_transforms(train=True)
         dataset = SSLDataset(dataset, transform=transform)
-    else: # 지도학습 또는 평가
+    else:  # 지도학습 또는 평가
         transform = get_transforms(train)
         dataset.transform = transform
     
