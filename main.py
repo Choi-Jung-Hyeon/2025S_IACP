@@ -67,6 +67,16 @@ def run_ssl(args):
     
     total_steps = args.num_epochs * len(train_loader)
 
+    # Load datasets for SSL
+    train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_framework=args.framework)
+    test_dataset = datasets.load_dataset(args.dataset, train=False, ssl_framework=None)
+    train_labeled = datasets.load_dataset(args.dataset, train=True, ssl_framework=None)
+    
+    # DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    train_labeled_loader = DataLoader(train_labeled, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
+
     # Initialize framework
     if args.framework == "rotnet":
         framework = frameworks.Rotnet(encoder)
