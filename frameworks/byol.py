@@ -19,11 +19,12 @@ class MLPHead(nn.Module):
         return self.block(x)
 
 class BYOL(BaseFramework):
-    def __init__(self, encoder, total_steps, projection_size=256, projection_hidden_size=4096, base_moving_average_decay=0.996):
+    def __init__(self, encoder, target_encoder, num_epochs, num_samples, batch_size, 
+                 projection_size=256, projection_hidden_size=4096, base_moving_average_decay=0.996):
         super().__init__(encoder)
         
         self.base_moving_average_decay = base_moving_average_decay
-        self.total_steps = total_steps
+        self.total_steps = (num_samples // batch_size) * num_epochs
         
         with torch.no_grad():
             dummy = torch.randn(2, 3, 32, 32).to(next(encoder.parameters()).device)
@@ -32,15 +33,14 @@ class BYOL(BaseFramework):
         self.online_projector = MLPHead(self.feature_dim, projection_hidden_size, projection_size)
         self.online_predictor = MLPHead(projection_size, projection_hidden_size, projection_size)
 
-        self.target_encoder = copy.deepcopy(self.encoder)
-        self.target_projector = copy.deepcopy(self.online_projector)
+        self.target_encoder = target_encoder
+        self.target_projector = MLPHead(self.feature_dim, projection_hidden_size, projection_size)
+        
+        self.target_encoder.load_state_dict(self.encoder.state_dict())
+        self.target_projector.load_state_dict(self.online_projector.state_dict())
 
-        self._set_requires_grad(self.target_encoder, False)
-        self._set_requires_grad(self.target_projector, False)
-
-    def _set_requires_grad(self, model, val):
-        for p in model.parameters():
-            p.requires_grad = val
+        self.target_encoder.requires_grad_(False)
+        self.target_projector.requires_grad_(False)
 
     @torch.no_grad()
     def _update_moving_average(self, step):

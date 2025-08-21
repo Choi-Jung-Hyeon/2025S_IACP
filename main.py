@@ -64,8 +64,7 @@ def run_ssl(args):
         encoder = models.rotnet(num_classes=4, num_blocks=args.num_blocks)
     else:
         encoder = models.load_model(args.model, num_classes=num_classes)
-    
-    total_steps = args.num_epochs * len(train_loader)
+        encoder_k = models.load_model(args.model, num_classes=num_classes) # MoCo, BYOL용 복제 모델
 
     # Load datasets for SSL
     train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_framework=args.framework)
@@ -85,19 +84,17 @@ def run_ssl(args):
     elif args.framework == "simsiam":
         framework = frameworks.SimSiam(encoder)
     elif args.framework == "byol":
-        framework = frameworks.BYOL(encoder, total_steps=total_steps)
+        framework = frameworks.BYOL(
+            encoder, 
+            encoder_k,
+            num_epochs=args.num_epochs, 
+            num_samples=len(train_dataset), 
+            batch_size=args.batch_size
+        )
+    elif args.framework == "moco":
+        framework = frameworks.MoCo(encoder, encoder_k)
     else:
         raise ValueError(f"Framework {args.framework} is not a valid SSL framework")
-
-    # Load datasets for SSL
-    train_dataset = datasets.load_dataset(args.dataset, train=True, ssl_framework=args.framework)
-    test_dataset = datasets.load_dataset(args.dataset, train=False, ssl_framework=None)
-    train_labeled = datasets.load_dataset(args.dataset, train=True, ssl_framework=None)
-    
-    # DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
-    train_labeled_loader = DataLoader(train_labeled, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
     
     framework.to(device)
     
